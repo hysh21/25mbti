@@ -7,8 +7,6 @@ st.title("MBTI 비율: 국가별 보기 🌍")
 st.caption("국가를 선택하면 16개 MBTI 유형 비율을 보여줍니다. 🧭")
 
 FILE_PATH = "countriesMBTI_16types.csv"
-
-# CSV 읽기 (BOM 대비)
 df = pd.read_csv(FILE_PATH, encoding="utf-8-sig")
 df.columns = df.columns.str.strip()
 
@@ -31,6 +29,21 @@ if row.empty:
 series = row.iloc[0].drop(labels=["Country"])
 data = series.reset_index()
 data.columns = ["MBTI", "ratio"]
+
+# ← 문제 해결 포인트
+if data["ratio"].dtype == "object":
+    data["ratio"] = (
+        data["ratio"].astype(str)
+        .str.replace("%", "", regex=False)
+        .str.replace(",", ".", regex=False)
+        .str.strip()
+    )
+data["ratio"] = pd.to_numeric(data["ratio"], errors="coerce")
+
+if data["ratio"].isna().all():
+    st.error("비율 값이 모두 숫자가 아닙니다. CSV의 값(%, 공백, 콤마 등)을 확인해주세요.")
+    st.stop()
+
 data = data.sort_values("ratio", ascending=False)
 data["percent"] = (data["ratio"] * 100).round(2)
 
@@ -55,7 +68,6 @@ fig = px.bar(
 )
 fig.update_traces(text=[f"{p}%" for p in data["percent"]], textposition="outside")
 fig.update_layout(showlegend=False, yaxis=dict(categoryorder="total ascending"))
-
 st.plotly_chart(fig, use_container_width=True)
 
 st.subheader("상위 3개 유형 🏅")
