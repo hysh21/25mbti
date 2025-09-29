@@ -11,19 +11,27 @@ st.caption("선택한 국가의 16개 MBTI 유형 비율을 한눈에 확인해�
 FILE_PATH = "countriesMBTI_16types.csv"  # 같은 폴더에 위치
 df = pd.read_csv(FILE_PATH)
 
+# 방어 코드: Country 열이 존재하는지 확인
+if "Country" not in df.columns:
+    st.error("CSV에 'Country' 컬럼이 없습니다. 파일 형식을 확인해주세요.")
+    st.stop()
+
 # 2) UI - 국가 선택
-countries = df["Country"].sort_values().tolist()
+countries = df["Country"].astype(str).sort_values().tolist()
 default_country = "Korea, Republic of" if "Korea, Republic of" in countries else countries[0]
 country = st.selectbox("🇺🇳 나라를 선택하세요", countries, index=countries.index(default_country))
 
-# 3) 선택한 국가의 MBTI 시리즈 만들기
-row = df.loc[df["Country"] == country].iloc[0]
-series = row.drop(labels=["Country"])
-data = (
-    series.reset_index()
-    .rename(columns={"index": "MBTI", country: "ratio"})
-    .sort_values("ratio", ascending=False)
-)
+# 3) 선택한 국가의 MBTI 시리즈 만들기 (컬럼명 안전하게 지정)
+row = df.loc[df["Country"] == country]
+if row.empty:
+    st.error(f"선택한 국가({country})가 데이터에 없습니다.")
+    st.stop()
+
+series = row.iloc[0].drop(labels=["Country"])
+data = series.reset_index()
+# 여기서 확실히 컬럼명을 설정해 KeyError 방지!
+data.columns = ["MBTI", "ratio"]
+data = data.sort_values("ratio", ascending=False)
 data["percent"] = (data["ratio"] * 100).round(2)
 
 # 4) 예쁜 색 팔레트 (16개 이상 보장)
@@ -33,7 +41,6 @@ palette = (
     + px.colors.qualitative.Pastel2
     + px.colors.qualitative.Safe
 )
-# MBTI 순서대로 안정적 매핑을 위해 색을 잘라서 사용
 colors = palette[: len(data)]
 
 # 5) Plotly 막대 그래프
@@ -49,13 +56,8 @@ fig = px.bar(
     title=f"📊 {country} — MBTI 비율 Top to Bottom"
 )
 
-# 퍼센트 값 라벨
-fig.update_traces(
-    text=[f"{p}%" for p in data["percent"]],
-    textposition="outside"
-)
+fig.update_traces(text=[f"{p}%" for p in data["percent"]], textposition="outside")
 
-# 레이아웃 다듬기
 fig.update_layout(
     showlegend=False,
     xaxis=dict(title="비율(%)"),
@@ -78,9 +80,4 @@ with col3:
 
 # 7) 원본 데이터(선택국가) 표
 with st.expander("🔎 원본 데이터 (선택 국가의 16유형 비율 표 보기)"):
-    st.dataframe(
-        data[["MBTI", "percent"]].rename(columns={"percent": "비율(%)"}).reset_index(drop=True),
-        use_container_width=True
-    )
-
-st.caption("✨ Tip: 그래프의 막대를 클릭하면 해당 항목만 하이라이트돼요!")
+    st.dat
