@@ -3,7 +3,11 @@ import pandas as pd
 import altair as alt
 
 # 제목
-st.title("🌍 MBTI 유형별 상위 10개 국가 시각화")
+st.markdown(
+    "<h1 style='text-align: center;'>🌍 MBTI 유형별<br>상위 10개 국가 시각화</h1>",
+    unsafe_allow_html=True
+)
+
 
 # 파일 읽기
 file_path = "countriesMBTI_16types.csv"
